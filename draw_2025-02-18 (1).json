@@ -1,0 +1,18 @@
+{
+    "ver": "0.7.0",
+    "date": "2025-02-18",
+    "shapes": [
+        {
+            "start_x": 660,
+            "start_y": 320,
+            "radius": 128.06248474865697,
+            "final_radius": 128.06248474865697,
+            "animationCreate": false,
+            "counterCreate": 1.0000000000000002,
+            "color": "#0074D9",
+            "stroke": "white",
+            "colorKey": "rgb(232,138,74)"
+        }
+    ],
+    "theme": "grey"
+}

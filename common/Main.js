@@ -69,20 +69,126 @@ window.addEventListener('wheel', function (evt) {
 	if (dy < 0) { scrolldown = true; }
 }, false);
 
+function exportToDXF(json) {
+	let dxfContent = '0\nSECTION\n2\nHEADER\n0\nENDSEC\n';
+	dxfContent += '0\nSECTION\n2\nTABLES\n0\nENDSEC\n';
+	dxfContent += '0\nSECTION\n2\nBLOCKS\n0\nENDSEC\n';
+	dxfContent += '0\nSECTION\n2\nENTITIES\n';
 
+	json.shapes.forEach(shape => {
+		if (shape.start_x && shape.start_y && shape.end_x && shape.end_y) {
+			// Line
+			dxfContent += `0\nLINE\n8\n0\n10\n${shape.start_x}\n20\n${shape.start_y}\n30\n0.0\n`;
+			dxfContent += `11\n${shape.end_x}\n21\n${shape.end_y}\n31\n0.0\n`;
+		} else if (shape.radius) {
+			// Circle
+			dxfContent += `0\nCIRCLE\n8\n0\n10\n${shape.start_x}\n20\n${shape.start_y}\n30\n0.0\n`;
+			dxfContent += `40\n${shape.radius}\n`;
+		} else if (shape.measure) {
+			// Text (annotation)
+			dxfContent += `0\nTEXT\n8\n0\n10\n${shape.start_x}\n20\n${shape.start_y}\n30\n0.0\n`;
+			dxfContent += `40\n${shape.font}\n1\n${shape.measure}\n`;
+		}
+	});
+
+	dxfContent += '0\nENDSEC\n0\nSECTION\n2\nOBJECTS\n0\nENDSEC\n0\nEOF\n';
+
+	// Create a Blob object from the DXF content and trigger a download
+	const blob = new Blob([dxfContent], { type: 'application/dxf' });
+	const link = document.createElement('a');
+	link.href = URL.createObjectURL(blob);
+	link.download = 'drawing.dxf';
+	link.click();
+}
+function convertElementsToJSON(elements) {
+	const shapes = elements.map(element => {
+		if (element.constructor.name === "Line") {
+			return {
+				type: "line",
+				start_x: element.vertex1.x,
+				start_y: element.vertex1.y,
+				end_x: element.vertex2.x,
+				end_y: element.vertex2.y
+			};
+		} else if (element.constructor.name === "Circle") {
+			return {
+				type: "circle",
+				start_x: element.vertex1.x,
+				start_y: element.vertex1.y,
+				radius: element.radius
+			};
+		} else if (element.constructor.name === "Rect") {
+			return {
+				type: "rect",
+				lines: [
+					{
+						start_x: element.line1.vertex1.x,
+						start_y: element.line1.vertex1.y,
+						end_x: element.line1.vertex2.x,
+						end_y: element.line1.vertex2.y
+					},
+					{
+						start_x: element.line2.vertex1.x,
+						start_y: element.line2.vertex1.y,
+						end_x: element.line2.vertex2.x,
+						end_y: element.line2.vertex2.y
+					},
+					{
+						start_x: element.line3.vertex1.x,
+						start_y: element.line3.vertex1.y,
+						end_x: element.line3.vertex2.x,
+						end_y: element.line3.vertex2.y
+					},
+					{
+						start_x: element.line4.vertex1.x,
+						start_y: element.line4.vertex1.y,
+						end_x: element.line4.vertex2.x,
+						end_y: element.line4.vertex2.y
+					}
+				]
+			};
+		} else if (element.constructor.name === "Polygon") {
+			return {
+				type: "polygon",
+				lines: element.polyLines.map(line => ({
+					start_x: line.vertex1.x,
+					start_y: line.vertex1.y,
+					end_x: line.vertex2.x,
+					end_y: line.vertex2.y
+				}))
+			};
+		}
+	});
+
+	return JSON.stringify({ shapes }, null, 2);
+}
+
+// Example usage: Convert elements and download as JSON
+function exportJSON(elements) {
+	const jsonData = convertElementsToJSON(elements);
+	const blob = new Blob([jsonData], { type: 'application/json' });
+	const link = document.createElement('a');
+	link.href = URL.createObjectURL(blob);
+	link.download = 'drawing.json';
+	link.click();
+}
 function convertElementsToDXF(elements) {
-    let dxfContent = '0\nSECTION\n2\nHEADER\n0\nENDSEC\n';
-    dxfContent += '0\nSECTION\n2\nTABLES\n0\nENDSEC\n';
-    dxfContent += '0\nSECTION\n2\nBLOCKS\n0\nENDSEC\n';
-    dxfContent += '0\nSECTION\n2\nENTITIES\n';
+	
+	let dxfContent = '0\nSECTION\n2\nHEADER\n0\nENDSEC\n';
+	dxfContent += '0\nSECTION\n2\nTABLES\n0\nENDSEC\n';
+	dxfContent += '0\nSECTION\n2\nBLOCKS\n0\nENDSEC\n';
+	dxfContent += '0\nSECTION\n2\nENTITIES\n';
+
 
     elements.forEach(element => {
         if (element.constructor.name === "Line") {
             dxfContent += `0\nLINE\n8\n0\n10\n${element.vertex1.x}\n20\n${element.vertex1.y}\n30\n0.0\n`;
             dxfContent += `11\n${element.vertex2.x}\n21\n${element.vertex2.y}\n31\n0.0\n`;
         } else if (element.constructor.name === "Circle") {
-            dxfContent += `0\nCIRCLE\n8\n0\n10\n${element.vertex1.x}\n20\n${element.vertex1.y}\n30\n0.0\n`;
-            dxfContent += `40\n${element.radius}\n`;
+			console.log("circle finded", element.vertex1.x, element.vertex1.y, element.radius)
+			
+			dxfContent += `0\nCIRCLE\n8\n0\n10\n${element.vertex1.x}\n20\n${element.vertex1.y}\n30\n0.0\n`;
+			dxfContent += `40\n${element.radius}\n`;
         } else if (element.constructor.name === "Rect") {
             [element.line1, element.line2, element.line3, element.line4].forEach(line => {
                 dxfContent += `0\nLINE\n8\n0\n10\n${line.vertex1.x}\n20\n${line.vertex1.y}\n30\n0.0\n`;
@@ -112,11 +218,13 @@ function exportDXF(elements) {
 }
 
 
+
 // Call this function when user presses 'D' key
-window.addEventListener('keydown', function(evt) {
-    if (evt.key === 'd' || evt.key === 'D') {
-        exportDXF(elements);
-    }
+window.addEventListener('keydown', function (evt) {
+	if (evt.key === 'd' || evt.key === 'D') {
+		exportJSON(elements);
+		exportDXF(elements);
+	}
 });
 // Listen for "D" key press to export JSON
 
