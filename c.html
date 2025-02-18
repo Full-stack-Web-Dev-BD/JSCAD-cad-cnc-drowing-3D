@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON to DXF Converter</title>
+</head>
+<body>
+    <h2>Upload JSON to Convert to DXF</h2>
+    <input type="file" id="fileInput" accept="application/json">
+    <button onclick="convertToDXF()">Convert & Download DXF</button>
+
+    <script>
+        function convertToDXF() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) {
+                alert('Please select a JSON file.');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const jsonData = JSON.parse(event.target.result);
+                let dxfContent = "0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nSECTION\n2\nTABLES\n0\nENDSEC\n0\nSECTION\n2\nBLOCKS\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n";
+                
+                jsonData.shapes.forEach(shape => {
+                    if (shape.type === "circle") {
+                        dxfContent += `0\nCIRCLE\n8\n0\n10\n${shape.start_x}\n20\n${shape.start_y}\n40\n${shape.radius}\n`;
+                    } else if (shape.type === "rect" || shape.type === "polygon") {
+                        shape.lines.forEach(line => {
+                            dxfContent += `0\nLINE\n8\n0\n10\n${line.start_x}\n20\n${line.start_y}\n30\n0\n11\n${line.end_x}\n21\n${line.end_y}\n31\n0\n`;
+                        });
+                    } else if (shape.type === "line") {
+                        dxfContent += `0\nLINE\n8\n0\n10\n${shape.start_x}\n20\n${shape.start_y}\n30\n0\n11\n${shape.end_x}\n21\n${shape.end_y}\n31\n0\n`;
+                    }
+                });
+                
+                dxfContent += "0\nENDSEC\n0\nSECTION\n2\nEOF\n";
+                
+                const blob = new Blob([dxfContent], { type: 'text/plain' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'output.dxf';
+                a.click();
+            };
+            
+            reader.readAsText(fileInput.files[0]);
+        }
+    </script>
+</body>
+</html>
